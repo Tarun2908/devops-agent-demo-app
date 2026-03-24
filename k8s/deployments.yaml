@@ -1,1 +1,41 @@
-
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-demo-app
+  labels:
+    app: devops-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: devops-demo
+  template:
+    metadata:
+      labels:
+        app: devops-demo
+    spec:
+      containers:
+      - name: devops-demo-app
+        image: IMAGE_PLACEHOLDER
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-demo-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: devops-demo
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
