@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Installing Trivy scanner...
+      - wget https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz
+      - tar zxvf trivy_0.48.0_Linux-64bit.tar.gz
+      - mv trivy /usr/local/bin/
+
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+      - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION:0:7}
+
+  build:
+    commands:
+      - echo Scanning container image with Trivy...
+      - trivy image --severity HIGH,CRITICAL --exit-code 1 --no-progress $REPOSITORY_URI:$IMAGE_TAG
+      - echo Container scan passed!
+
+  post_build:
+    commands:
+      - echo Generating scan report...
+      - trivy image --format json --output trivy-report.json $REPOSITORY_URI:$IMAGE_TAG
+      - echo Container security scan completed
+
+artifacts:
+  files:
+    - trivy-report.json
